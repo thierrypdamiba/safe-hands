@@ -1,2 +1,3 @@
-cedarpy>=0.1
-mujoco  # optional, for the sim render
+cedarpy
+mcp
+mujoco  # for the sim render
