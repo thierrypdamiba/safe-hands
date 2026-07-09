@@ -95,6 +95,8 @@ gets to *assert* whether a human is present; the runtime reads that from the sen
 enforces the First Law itself.
 
 ## What's here
+- **[`DESIGN.md`](DESIGN.md)** — the design doc: goals/non-goals, key decisions & tradeoffs, alternatives considered, and the honest limits. **Start here if you want the thinking.**
+- `bench.py` — the four-check benchmark (decision suite · positive controls · mutation test · baseline).
 - `laws.cedar` — the Three Laws, as real [Cedar](https://www.cedarpolicy.com/) policy.
 - `governance.py` — authorize any action against the Laws; audit it.
 - `server.py` — the **MCP server**: a robot arm exposed to agents, every action governed.
