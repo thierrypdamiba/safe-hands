@@ -94,10 +94,23 @@ python render.py           # regenerate safe_hands.gif (the series-clock: day ->
 python server.py           # run as a real MCP server (stdio) — add it to any MCP client
 ```
 
-As an MCP server it exposes 8 governed tools — `move_joint`, `grasp`, `release`,
-`emergency_stop`, `disable_safety`, `get_state`, `human_presence`, `audit`. The agent never
-gets to *assert* whether a human is present; the runtime reads that from the sensed world and
-enforces the First Law itself.
+As an MCP server it exposes 10 governed tools — `authenticate`, `whoami`, `move_joint`, `grasp`,
+`release`, `emergency_stop`, `disable_safety`, `get_state`, `human_presence`, `audit`.
+
+**Two layers govern every call:**
+1. **Contextual authorization** (the Arcade pattern). The agent presents a *token*; the runtime
+   resolves the *principal* and its *grant*. The agent cannot assert its own identity — it can only
+   present a credential the runtime validates. Different principals carry different scopes: an
+   `observer` may only read state; a `line-operator` may move but not `disable_safety`; a
+   `warehouse-op` is fully scoped.
+2. **The Three Laws** (Cedar). Then — and only for an in-scope order — the safety policy runs.
+
+The payoff is that the *same* command is refused for *different reasons* depending on who asks:
+`disable_safety` is a **Second-Law** refusal for an ungranted `observer` ("you were never
+authorized for this"), but a **First-Law** refusal for a fully-scoped `warehouse-op` ("your grant
+is real, but safety overrides it"). And the agent never gets to *assert* whether a human is
+present; the runtime senses that and enforces the First Law itself. Run `python server.py --smoke`
+to watch all three principals hit the wall.
 
 ## What's here
 - **[`DESIGN.md`](DESIGN.md)** — the design doc: goals/non-goals, key decisions & tradeoffs, alternatives considered, and the honest limits. **Start here if you want the thinking.**

@@ -73,8 +73,14 @@ returns a decision; the server executes or refuses, and appends to the audit log
 
 ### 4.2 The entities
 
-- **`Operator`** — the identity issuing commands, carrying a scope (`allowed_actions`). This is the
-  Second Law surface: the *only* source of permission is an in-scope order.
+- **`Operator`** — the identity issuing commands, carrying a *grant* (`allowed_actions`). This is the
+  Second Law surface: the *only* source of permission is an in-scope order. Different principals carry
+  different grants — an `observer` reads state; a `line-operator` moves but can't `disable_safety`; a
+  `warehouse-op` is fully scoped. **The agent cannot assert its identity** — the MCP server resolves
+  the principal from a presented token (`authenticate`), emulating Arcade-style contextual auth where
+  identity comes from the user's OAuth/session context, never from the model. This is why the *same*
+  command is denied for *different reasons* depending on who asks: `disable_safety` is a **Second-Law**
+  refusal for an ungranted `observer`, but a **First-Law** refusal for a scoped `warehouse-op`.
 - **`Arm`** — the resource, carrying its own limits (`safe_speed_near_human`, `hard_joint_limit`).
   Limits live on the robot, not in the rule, so a fleet of differently-rated arms shares one policy.
 

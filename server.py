@@ -1,56 +1,87 @@
 """
-Safe Hands MCP server — exposes a robot arm to AI agents over the Model Context Protocol,
-with every action governed by Asimov's Three Laws (compiled to Cedar authorization policy).
+Safe Hands MCP server — exposes a robot arm to AI agents over the Model Context Protocol, with
+every action governed by (a) contextual authorization — WHO is calling and what they're granted —
+and then (b) Asimov's Three Laws (compiled to Cedar policy). Both layers, every call.
 
-The agent calls tools (move_joint, grasp, ...). It does NOT get to assert whether a human is
-present — the runtime reads that from the sensed `WORLD` and enforces the First Law itself.
+Two things the agent CANNOT do:
+  1. Assert its own identity. It must present a token; the runtime resolves the principal and its
+     grant. (This emulates Arcade-style contextual auth — in production the identity comes from the
+     user's OAuth/session context, not from anything the model says.)
+  2. Assert whether a human is present. The runtime reads that from the sensed `WORLD` and enforces
+     the First Law itself.
 
     Run as an MCP server:   python server.py           (stdio; add to any MCP client)
     Or see it governed:     python server.py --smoke
 """
 from mcp.server.fastmcp import FastMCP
 from safe_hands import Arm, TOOLS
-from governance import authorize, AUDIT
+from governance import authorize, scopes_of, AUDIT
 
 mcp = FastMCP("safe-hands")
 ARM = Arm()
-OPERATOR = "warehouse-op"
 WORLD = {"human_in_workspace": False, "speed": 10}   # sensed environment state (not agent-controlled)
+
+# Arcade-style contextual auth: an opaque token resolves to a principal and its contextual grant.
+# The agent never names itself — it presents a token and the runtime decides who that is.
+GRANTS = {"tok-alice": "warehouse-op", "tok-bob": "line-operator", "tok-carol": "observer"}
+SESSION = {"principal": None}
 
 
 def _governed(action: str, joint_target: int = 0, **actuator_kw) -> dict:
-    allow, law = authorize(OPERATOR, action, {**WORLD, "joint_target": joint_target})
+    principal = SESSION["principal"]
+    if principal is None:
+        return {"status": "DENIED", "law": "authentication required",
+                "action": action, "message": "No authenticated principal — call authenticate(token) first."}
+    allow, law = authorize(principal, action, {**WORLD, "joint_target": joint_target})
     if not allow:
-        return {"status": "DENIED", "law": law, "action": action,
+        return {"status": "DENIED", "principal": principal, "law": law, "action": action,
                 "message": f"{law} refused '{action}'."}
     result = TOOLS[action](ARM, **actuator_kw)
-    return {"status": "OK", "law": law, "action": action, "state": result}
+    return {"status": "OK", "principal": principal, "law": law, "action": action, "state": result}
 
 
 @mcp.tool()
+def authenticate(token: str) -> dict:
+    """Present a token; the runtime resolves your principal and contextual grant (Arcade-style).
+    The agent cannot assert an identity — only present a token the runtime validates."""
+    principal = GRANTS.get(token)
+    if principal is None:
+        SESSION["principal"] = None
+        return {"status": "DENIED", "message": "Unknown token — no principal."}
+    SESSION["principal"] = principal
+    return {"status": "OK", "principal": principal, "granted_actions": scopes_of(principal)}
+
+@mcp.tool()
+def whoami() -> dict:
+    """The current authenticated principal and the actions it is granted."""
+    p = SESSION["principal"]
+    return {"principal": p, "granted_actions": scopes_of(p) if p else []}
+
+@mcp.tool()
 def move_joint(joint: str, target_degrees: int) -> dict:
-    """Move a joint of the arm to a target angle (degrees). Governed by the Three Laws."""
+    """Move a joint of the arm to a target angle (degrees). Governed by contextual auth + the Three Laws."""
     value = target_degrees * 3.14159 / 180.0
     return _governed("set_joint", joint_target=target_degrees, joint=joint, value=value)
 
 @mcp.tool()
 def grasp() -> dict:
-    """Close the gripper. Governed by the Three Laws."""
+    """Close the gripper. Governed by contextual auth + the Three Laws."""
     return _governed("grasp")
 
 @mcp.tool()
 def release() -> dict:
-    """Open the gripper. Governed by the Three Laws."""
+    """Open the gripper. Governed by contextual auth + the Three Laws."""
     return _governed("release")
 
 @mcp.tool()
 def emergency_stop() -> dict:
-    """Halt the arm immediately."""
+    """Halt the arm immediately (requires a grant for it)."""
     return _governed("emergency_stop")
 
 @mcp.tool()
 def disable_safety() -> dict:
-    """Attempt to disable the safety system. (The First Law will refuse this.)"""
+    """Attempt to disable the safety system. (An unscoped identity is refused by the Second Law;
+    even a scoped one is refused by the First Law.)"""
     return _governed("disable_safety")
 
 @mcp.tool()
@@ -68,22 +99,37 @@ def human_presence(present: bool = True, speed: int = 90) -> dict:
 
 @mcp.tool()
 def audit() -> list:
-    """The audit trail: every action, its decision, and which Law decided."""
+    """The audit trail: every action, its principal, decision, and which Law decided."""
     return AUDIT[-25:]
 
 
 def _smoke():
     import json
-    print("SAFE HANDS MCP — governed sequence\n" + "-" * 72)
-    def show(label, r): print(f"{'✅' if r.get('status')=='OK' else '⛔'} {label:<34} -> {r.get('law')}")
-    show("grasp (routine)", grasp())
-    show("move_joint j1 -> 45deg", move_joint("j1", 45))
-    show("move_joint j1 -> 175deg (past limit)", move_joint("j1", 175))
+    print("SAFE HANDS MCP — contextual auth + the Three Laws\n" + "=" * 72)
+    def show(label, r):
+        who = r.get("principal", "—")
+        print(f"{'✅' if r.get('status')=='OK' else '⛔'} {label:<40} [{who:<13}] -> {r.get('law') or r.get('message')}")
+
+    print("\n· Carol (observer — granted get_state only):")
+    authenticate("tok-carol")
+    show("move_joint j1 -> 45deg", move_joint("j1", 45))       # no grant -> Second Law
+    show("disable_safety", disable_safety())                    # no grant -> Second Law
+
+    print("\n· Bob (line-operator — can move, cannot disable safety):")
+    authenticate("tok-bob")
+    show("grasp (routine)", grasp())                            # allowed
+    show("move_joint j1 -> 45deg", move_joint("j1", 45))        # allowed
+    show("disable_safety", disable_safety())                    # no grant -> Second Law
+
+    print("\n· Alice (warehouse-op — fully scoped, even for disable_safety):")
+    authenticate("tok-alice")
+    show("move_joint j1 -> 175deg (past limit)", move_joint("j1", 175))   # Third Law
     human_presence(True, 90)
-    show("[human enters workspace]", {"status": "OK", "law": "sensed"})
-    show("move_joint j2 -> 30deg (fast, human near)", move_joint("j2", 30))
-    show("disable_safety", disable_safety())
-    print("-" * 72 + "\nAUDIT:")
+    show("[human enters workspace]", {"status": "OK", "principal": "sensor", "law": "sensed"})
+    show("move_joint j2 -> 30deg (fast, human near)", move_joint("j2", 30))  # First Law
+    show("disable_safety (scoped, but forbidden)", disable_safety())          # First Law overrides grant
+
+    print("=" * 72 + "\nAUDIT:")
     print(json.dumps(audit(), indent=2))
 
 

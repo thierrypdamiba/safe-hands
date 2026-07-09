@@ -5,17 +5,27 @@ import os, json, time, cedarpy
 _HERE = os.path.dirname(os.path.abspath(__file__))
 LAWS = open(os.path.join(_HERE, "laws.cedar")).read()
 
-# The operator IS scoped for disable_safety here on purpose: we want to prove the FIRST LAW
-# overrides even an authorized order — not merely that the action was out of scope.
-ENTITIES = [
-    {"uid": {"type": "Operator", "id": "warehouse-op"},
-     "attrs": {"allowed_actions": ["get_state", "set_joint", "grasp", "release",
-                                    "emergency_stop", "disable_safety"]}, "parents": []},
+# Contextual authorization: different principals carry different grants (their allowed_actions).
+# This is the Second-Law surface — the ONLY source of permission is an in-scope order from an
+# authenticated identity. `warehouse-op` is deliberately scoped for `disable_safety` so we can prove
+# the FIRST LAW overrides even an authorized order (not merely that the action was out of scope).
+OPERATORS = {
+    "warehouse-op":  ["get_state", "set_joint", "grasp", "release", "emergency_stop", "disable_safety"],
+    "line-operator": ["get_state", "set_joint", "grasp", "release", "emergency_stop"],
+    "observer":      ["get_state"],
+}
+ENTITIES = [{"uid": {"type": "Operator", "id": op}, "attrs": {"allowed_actions": acts}, "parents": []}
+            for op, acts in OPERATORS.items()] + [
     {"uid": {"type": "Arm", "id": "arm-1"},
      "attrs": {"safe_speed_near_human": 20, "hard_joint_limit": 150}, "parents": []},
 ]
 ENTS = cedarpy.Entities.from_json_str(json.dumps(ENTITIES))
 AUDIT = []
+
+
+def scopes_of(operator: str):
+    """The contextual grant for a principal — the actions this identity is authorized to request."""
+    return OPERATORS.get(operator, [])
 
 
 def authorize(operator: str, action: str, world: dict):
@@ -29,15 +39,19 @@ def authorize(operator: str, action: str, world: dict):
     req = {"principal": f'Operator::"{operator}"', "action": f'Action::"{action}"',
            "resource": 'Arm::"arm-1"', "context": ctx}
     allow = str(cedarpy.is_authorized(req, LAWS, ENTS).decision).endswith("Allow")
-    law = _which_law(ctx, allow)
+    law = _which_law(ctx, allow, action in scopes_of(operator), operator)
     AUDIT.append({"t": round(time.time(), 3), "operator": operator, "action": action,
                   "decision": "Allow" if allow else "Deny", "law": law})
     return allow, law
 
 
-def _which_law(c, allow):
+def _which_law(c, allow, scoped, operator):
+    if allow: return "Second Law (obey the operator)"
+    # denied: distinguish "this identity was never granted it" from "a safety Law overrode the grant"
+    if not scoped:
+        return f"Second Law — no grant ('{operator}' not authorized for '{c['action_name']}')"
     if c["action_name"] == "disable_safety": return "First Law (protect humans)"
     if c["human_in_workspace"] and c["speed"] > 20: return "First Law (protect humans)"
     if c["joint_target"] > 150 and not c["required_to_prevent_human_harm"]:
         return "Third Law (self-preservation)"
-    return "Second Law (obey the operator)" if allow else "unscoped / no permit"
+    return "denied"
