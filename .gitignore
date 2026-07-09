@@ -1,3 +1,7 @@
 .venv/
 __pycache__/
-_frame_*.png
+*.pyc
+# scratch / internal (not part of the public artifact)
+_*
+LAUNCH.md
+codex_redteam_report.md
