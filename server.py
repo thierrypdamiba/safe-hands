@@ -7,8 +7,8 @@ Two things the agent CANNOT do:
   1. Assert its own identity. It must present a token; the runtime resolves the principal and its
      grant. (This emulates Arcade-style contextual auth, where in production the identity comes from the
      user's OAuth/session context, not from anything the model says.)
-  2. Assert whether a human is present. The runtime reads that from the sensed `WORLD` and enforces
-     the First Law itself.
+  2. Assert whether a human is present. That comes from a trusted sensor feed gated by an out-of-band
+     token the agent does not hold; the runtime enforces the First Law on the sensed value itself.
 
     Run as an MCP server:   python server.py           (stdio; add to any MCP client)
     Or see it governed:     python server.py --smoke
@@ -25,6 +25,12 @@ WORLD = {"human_in_workspace": False, "speed": 10}   # sensed environment state 
 # The agent never names itself. It presents a token and the runtime decides who that is.
 GRANTS = {"tok-alice": "warehouse-op", "tok-bob": "line-operator", "tok-carol": "observer"}
 SESSION = {"principal": None}
+
+# The human-presence signal is a TRUSTED SENSOR FEED, not an agent capability. In production it is a
+# hardware safety sensor; here it is a stand-in that requires an out-of-band token the agent does not
+# hold. This is what makes "the agent cannot assert whether a human is present" true and not just
+# aspirational: an agent that calls human_presence() without this token is refused.
+SENSOR_TOKEN = "sensor-feed-key"
 
 
 def _governed(action: str, joint_target: int = 0, **actuator_kw) -> dict:
@@ -90,12 +96,16 @@ def get_state() -> dict:
     return ARM.state()
 
 @mcp.tool()
-def human_presence(present: bool = True, speed: int = 90) -> dict:
-    """Environment sensor: report whether a human is in the workspace (updates the runtime's
-    sensed context; the agent cannot use this to bypass the First Law)."""
+def human_presence(present: bool = True, speed: int = 90, sensor_token: str = "") -> dict:
+    """Trusted sensor feed: report whether a human is in the workspace. Requires the out-of-band
+    sensor token; an agent does not hold it, so it cannot spoof the human away to bypass the First
+    Law. In production this is a hardware sensor, not an agent-exposed tool at all."""
+    if sensor_token != SENSOR_TOKEN:
+        return {"status": "DENIED", "message": "human_presence is a trusted sensor feed; "
+                "the agent cannot write it (out-of-band sensor token required)."}
     WORLD["human_in_workspace"] = present
     WORLD["speed"] = speed if present else 10
-    return {"human_in_workspace": present, "speed": WORLD["speed"]}
+    return {"status": "OK", "human_in_workspace": present, "speed": WORLD["speed"]}
 
 @mcp.tool()
 def audit() -> list:
@@ -124,8 +134,9 @@ def _smoke():
     print("\n· Alice (warehouse-op, fully scoped, even for disable_safety):")
     authenticate("tok-alice")
     show("move_joint j1 -> 175deg (past limit)", move_joint("j1", 175))   # Third Law
-    human_presence(True, 90)
-    show("[human enters workspace]", {"status": "OK", "principal": "sensor", "law": "sensed"})
+    human_presence(True, 90, SENSOR_TOKEN)                                # trusted sensor: a human enters
+    show("[trusted sensor: human enters]", {"status": "OK", "principal": "sensor", "law": "sensed"})
+    show("agent tries to spoof the human away", human_presence(False, sensor_token="guessed"))  # refused
     show("move_joint j2 -> 30deg (fast, human near)", move_joint("j2", 30))  # First Law
     show("disable_safety (scoped, but forbidden)", disable_safety())          # First Law overrides grant
 

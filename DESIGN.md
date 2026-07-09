@@ -56,6 +56,31 @@ real policy-as-code.
 
 ## 4. Design
 
+### 4.0 Threat model
+
+**Who is the attacker?** Not a Hollywood robot. The realistic threat is the *agent itself*: a
+prompt-injected, jailbroken, buggy, or over-scoped LLM that issues an actuator command it shouldn't.
+The agent is assumed capable and untrusted. It can call any tool, in any order, with any arguments,
+and can be fully adversarial about it.
+
+**Trust boundaries.**
+- *Untrusted:* the agent and everything it says, including any identity it claims and any world-state
+  it tries to write.
+- *Trusted:* the sensor feed (human presence and speed), gated behind an out-of-band token the agent
+  does not hold; the operator grant table; and the Cedar engine.
+- *Below us:* a hardware e-stop and the robot's own real-time safety loop, which Safe Hands
+  complements rather than replaces.
+
+**What the runtime guarantees against that attacker.** The agent cannot (a) assert its own identity
+(it presents a token and the runtime resolves the principal), (b) act outside its grant (Second Law),
+(c) exceed the arm's limits or endanger a sensed human (Third and First Laws), or (d) spoof the human
+away, because the sensor feed is not agent-writable. Every attempt is audited.
+
+**Explicitly out of scope (see Non-Goals).** Spoofing the physical sensor upstream of the token;
+bypassing the MCP server to reach the motor driver directly; real-time timing; and whether the policy
+*thresholds* are the right numbers. Safe Hands narrows the agent's authority at the MCP boundary. It
+is one layer of defense-in-depth, not the last one.
+
 ### 4.1 The request path
 
 ```
@@ -113,7 +138,9 @@ unless { context.required_to_prevent_human_harm };
   from code we could get wrong. This is G3, and it's the crux of the design.
 - **Sensed, not asserted (G4).** The First Law's inputs come from the world, not the agent. A
   compromised or manipulated agent can *request* a fast move, but it cannot *claim* "no human here."
-  The runtime already knows. This is the difference between authorization and a suggestion.
+  The human-presence signal is a trusted sensor feed gated by an out-of-band token the agent has no
+  way to hold, so it can't spoof the human away. The runtime already knows. This is the difference
+  between authorization and a suggestion.
 - **The Third Law yields via `unless`.** `required_to_prevent_human_harm` lets an over-limit move
   through *only* when a higher law demands it, the "trolley" case, encoded declaratively rather than
   as a special case in code.

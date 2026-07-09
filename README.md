@@ -108,9 +108,10 @@ As an MCP server it exposes 10 governed tools: `authenticate`, `whoami`, `move_j
 The payoff is that the *same* command is refused for *different reasons* depending on who asks.
 `disable_safety` is a **Second-Law** refusal for an ungranted `observer` ("you were never authorized
 for this"), but a **First-Law** refusal for a fully-scoped `warehouse-op` ("your grant is real, but
-safety overrides it"). And the agent never gets to *assert* whether a human is present. The runtime
-senses that and enforces the First Law itself. Run `python server.py --smoke` to watch all three
-principals hit the wall.
+safety overrides it"). And the agent never gets to *assert* whether a human is present: that signal
+is a trusted sensor feed the agent holds no token to write, so it can't spoof the human away to slip
+past the First Law. The runtime enforces the Law on the sensed value itself. Run
+`python server.py --smoke` to watch all three principals, and a spoof attempt, hit the wall.
 
 ## What's here
 - **[`DESIGN.md`](DESIGN.md)**: the design doc, covering goals and non-goals, key decisions and tradeoffs, alternatives considered, and the honest limits. **Start here if you want the thinking.**
