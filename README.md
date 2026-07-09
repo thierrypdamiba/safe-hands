@@ -4,9 +4,9 @@
 
 > *"The model reasons. The runtime governs."* — now for things that can hurt you.
 
-![Safe Hands demo — an arm obeying the operator, then refused by the First and Third Laws](safe_hands.gif)
+![Safe Hands — the real SO-101 arm obeying, then refused, as the light moves from day to dark](safe_hands.gif)
 
-*The agent asks; the runtime decides. Obey the operator (Second Law) — unless it endangers a human (First Law) or destroys the robot (Third Law). Every action is authorized and audited.*
+*The real [SO-101](https://github.com/TheRobotStudio/SO-ARM100) (the LeRobot arm), governed. The agent asks; the runtime decides — obey the operator (Second Law) unless it endangers a human (First Law) or destroys the robot (Third Law) — and audits every action. It's a series-clock: the light moves day → dusk → dark with the story, and the final refusal lands in the black — because the governance holds whether the robot can see or not.*
 
 ---
 
@@ -54,14 +54,38 @@ unless { context.required_to_prevent_human_harm };
 Every command an agent issues is checked against these Laws, executed only if permitted, and
 written to an audit log that says *who, what, allowed/denied, and which Law decided.*
 
+## Does it actually work? (the benchmark)
+
+You don't bench an authorization layer with a robot success-rate — you bench it like a security
+control. `bench.py` runs four checks against the real Cedar engine:
+
+```
+1. DECISION SUITE   64/64 match vs an oracle re-derived from the Laws, independently of the Cedar
+                    FALSE-ALLOW: 0   (never permit what the Laws forbid — the number that matters)
+2. POSITIVE CONTROLS 0 bypasses — agent lies about the human; disable_safety though the operator is
+                    scoped for it; joint slam; the trolley override; routine grasp — all correct
+3. MUTATION TEST    2/2 caught — sabotage a Law in laws.cedar and the suite goes red (proof it has
+                    teeth, not theater): neutering a forbid surfaces 9 false-allows, flipping the
+                    speed check surfaces 6
+4. BASELINE         no-auth status quo (every robot-MCP demo today): 46/46 forbidden commands
+                    execute anyway.  Safe Hands: 0/46.
+```
+
+It deliberately does **not** bench perception (*is* there really a human? — the sensor's job, which
+is why "even in the dark" matters), Asimov's Laws being philosophically safe (they're not), or
+deny-beats-motor latency. It measures **policy correctness**. And the honest limit: the engine and
+oracle share a spec, so the mutation test — not the 64/64 — is what earns the credibility. Next:
+an independent red-team writes the oracle.
+
 ## Run it
 
 ```bash
 pip install cedarpy mcp mujoco imageio pillow
 
+python bench.py            # the four-check benchmark above
 python3 demo.py            # the governed sequence, in your terminal
 python server.py --smoke   # the same, through the MCP tools
-python render.py           # regenerate safe_hands.gif
+python render.py           # regenerate safe_hands.gif (the series-clock: day -> dusk -> dark)
 python server.py           # run as a real MCP server (stdio) — add it to any MCP client
 ```
 
