@@ -4,6 +4,10 @@
 
 > *"The model reasons. The runtime governs."* — now for things that can hurt you.
 
+![Safe Hands demo — an arm obeying the operator, then refused by the First and Third Laws](safe_hands.gif)
+
+*The agent asks; the runtime decides. Obey the operator (Second Law) — unless it endangers a human (First Law) or destroys the robot (Third Law). Every action is authorized and audited.*
+
 ---
 
 AI agents are about to get hands. Every robot-MCP demo on the internet today — an LLM
@@ -53,17 +57,29 @@ written to an audit log that says *who, what, allowed/denied, and which Law deci
 ## Run it
 
 ```bash
-pip install cedarpy
-python3 demo.py
+pip install cedarpy mcp mujoco imageio pillow
+
+python3 demo.py            # the governed sequence, in your terminal
+python server.py --smoke   # the same, through the MCP tools
+python render.py           # regenerate safe_hands.gif
+python server.py           # run as a real MCP server (stdio) — add it to any MCP client
 ```
 
-## What's here / what's next
-- `safe_hands.py` — the arm + its action surface (the tools an agent sees).
-- `laws.cedar` — the Three Laws, as real Cedar policy.
-- `demo.py` — an agent's commands, governed and audited.
-- **Next:** wrap the tools as an actual MCP server (Arcade-style contextual auth); render the
-  arm obeying/refusing in MuJoCo → Isaac Sim for the video; add multi-operator scopes and a
-  live audit dashboard.
+As an MCP server it exposes 8 governed tools — `move_joint`, `grasp`, `release`,
+`emergency_stop`, `disable_safety`, `get_state`, `human_presence`, `audit`. The agent never
+gets to *assert* whether a human is present; the runtime reads that from the sensed world and
+enforces the First Law itself.
+
+## What's here
+- `laws.cedar` — the Three Laws, as real [Cedar](https://www.cedarpolicy.com/) policy.
+- `governance.py` — authorize any action against the Laws; audit it.
+- `server.py` — the **MCP server**: a robot arm exposed to agents, every action governed.
+- `safe_hands.py` — the arm + its action surface.
+- `demo.py` — the governed sequence in the terminal.
+- `render.py` / `safe_hands.gif` — the MuJoCo visualization.
+
+**Next:** port the render to Isaac Sim (on NVIDIA's stack); multi-operator scopes + a live
+audit dashboard; a write-up on why physical actions are the highest-stakes agent actions.
 
 Built by [Thierry Damiba](https://thierrydamiba.com). The physical world is the highest-stakes
 place an agent can take an action — so it's the place the runtime matters most.
