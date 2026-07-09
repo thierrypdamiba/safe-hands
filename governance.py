@@ -6,7 +6,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 LAWS = open(os.path.join(_HERE, "laws.cedar")).read()
 
 # Contextual authorization: different principals carry different grants (their allowed_actions).
-# This is the Second-Law surface — the ONLY source of permission is an in-scope order from an
+# This is the Second-Law surface. The ONLY source of permission is an in-scope order from an
 # authenticated identity. `warehouse-op` is deliberately scoped for `disable_safety` so we can prove
 # the FIRST LAW overrides even an authorized order (not merely that the action was out of scope).
 OPERATORS = {
@@ -24,7 +24,7 @@ AUDIT = []
 
 
 def scopes_of(operator: str):
-    """The contextual grant for a principal — the actions this identity is authorized to request."""
+    """The actions this principal is authorized to request (its contextual grant)."""
     return OPERATORS.get(operator, [])
 
 
@@ -49,7 +49,7 @@ def _which_law(c, allow, scoped, operator):
     if allow: return "Second Law (obey the operator)"
     # denied: distinguish "this identity was never granted it" from "a safety Law overrode the grant"
     if not scoped:
-        return f"Second Law — no grant ('{operator}' not authorized for '{c['action_name']}')"
+        return f"Second Law (no grant for '{operator}' on '{c['action_name']}')"
     if c["action_name"] == "disable_safety": return "First Law (protect humans)"
     if c["human_in_workspace"] and c["speed"] > 20: return "First Law (protect humans)"
     if c["joint_target"] > 150 and not c["required_to_prevent_human_harm"]:

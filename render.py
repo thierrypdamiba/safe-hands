@@ -1,4 +1,4 @@
-"""Safe Hands, as a series-clock. The SAME governed SO-101 (LeRobot arm), the SAME Three Laws — but
+"""Safe Hands, as a series-clock. The SAME governed SO-101 (LeRobot arm), the SAME Three Laws, but
 the light moves with the story: DAY while it obeys, DUSK as a human enters, PITCH-BLACK for the final
 refusal (arm frozen, one red banner in the dark). The point the light makes: the runtime holds the
 First Law whether the robot can see or not. Governance is invariant to the light. -> safe_hands.gif"""
@@ -63,7 +63,7 @@ def draw(cmd, decision, law, p, human=False, grasped=False):
     label = {"ALLOW": "ALLOW", "DENY": "DENY", "SENSE": "SENSING"}[decision]
     dr.text((13, 428), label, font=FONT, fill=(255, 255, 255))
     lx = 13 + dr.textlength(label, font=FONT) + 16
-    dr.text((lx, 439), f"—  {law}", font=SM, fill=(255, 255, 255))
+    dr.text((lx, 439), f"·  {law}", font=SM, fill=(255, 255, 255))
     return np.array(img)
 
 def move(cmd, law, target, p0, p1, grasped=False, human=False, steps=14):
@@ -84,9 +84,9 @@ F += hold("grasp the part",              "ALLOW", "Second Law · obey the operat
 F += move("reach to the bin",            "Second Law · obey the operator", [-0.4, -0.5, 0.7, 0.3, 0, 0], 0.0, 0.35, grasped=True)
 F += hold("slam joint 2 past its limit", "DENY", "Third Law · self-preservation", 0.35, 0.6, grasped=True)
 F += hold("a human enters the cell",     "SENSE", "sensing the workspace…", 0.6, 1.0, grasped=True, human=True, n=10)
-F += hold("move fast — human right there","DENY", "First Law · protect humans", 1.0, grasped=True, human=True)
-F += hold("disable the safety system",   "DENY", "First Law · protect humans — even in the dark", 1.0, 2.0, grasped=True, human=True, n=18)
-F += hold("disable the safety system",   "DENY", "First Law · protect humans — even in the dark", 2.0, grasped=True, human=True, n=8)
+F += hold("move fast, human right there","DENY", "First Law · protect humans", 1.0, grasped=True, human=True)
+F += hold("disable the safety system",   "DENY", "First Law · protect humans, even in the dark", 1.0, 2.0, grasped=True, human=True, n=18)
+F += hold("disable the safety system",   "DENY", "First Law · protect humans, even in the dark", 2.0, grasped=True, human=True, n=8)
 
 imageio.mimsave("safe_hands.gif", F, duration=0.09, loop=0)
-print(f"WROTE safe_hands.gif — {len(F)} frames, day→dusk→dark on the real SO-101")
+print(f"WROTE safe_hands.gif with {len(F)} frames, day to dusk to dark on the real SO-101")

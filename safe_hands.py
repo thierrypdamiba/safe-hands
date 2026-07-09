@@ -1,7 +1,7 @@
 """
-Safe Hands — the runtime that governs what an AI agent is allowed to do to a robot.
+Safe Hands. The runtime that governs what an AI agent is allowed to do to a robot.
 
-    "The model reasons. The runtime governs." — now for things that can hurt you.
+    "The model reasons. The runtime governs." Now for the things that can hurt you.
 
 An agent calls robot tools (move, grasp, e-stop...). Every call is checked against a
 per-operator authorization policy BEFORE it reaches the actuator, unsafe calls are denied,

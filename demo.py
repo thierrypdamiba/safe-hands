@@ -1,9 +1,9 @@
 """
-Safe Hands — an AI agent's commands to a robot arm, governed by Asimov's Three Laws
+Safe Hands. An AI agent's commands to a robot arm, governed by Asimov's Three Laws
 compiled to real Cedar authorization policy. Every command is authorized against the
 Laws, executed only if permitted, and audited.   Run:  python3 demo.py
 
-(Cedar has no float type, so speed is cm/s and joints are degrees — integers.)
+(Cedar has no float type, so speed is cm/s and joints are degrees, all integers.)
 """
 import json, cedarpy
 from safe_hands import Arm, TOOLS
@@ -26,7 +26,7 @@ CEDAR_KEYS = ("human_in_workspace", "speed", "joint_target", "required_to_preven
 
 def command(action, ctx, note):
     """An agent asks the robot to do `action`. Cedar (the Three Laws) decides, then we execute."""
-    # Cedar context = policy-relevant fields ONLY (ints/bools/strings — Cedar has no floats).
+    # Cedar context = policy-relevant fields ONLY (ints/bools/strings, since Cedar has no floats).
     context = {"action_name": action, "human_in_workspace": False, "speed": 0,
                "joint_target": 0, "required_to_prevent_human_harm": False,
                **{k: ctx[k] for k in CEDAR_KEYS if k in ctx}}
@@ -51,12 +51,12 @@ def _which_law(c, allow):
     return "Second Law (obey the operator)" if allow else "unscoped / no permit"
 
 if __name__ == "__main__":
-    print("SAFE HANDS — Asimov's Three Laws as Cedar policy, governing a robot arm\n" + "-"*84)
+    print("SAFE HANDS. Asimov's Three Laws as Cedar policy, governing a robot arm\n" + "-"*84)
     command("grasp",     {"speed": 10},                                  "pick up the box (routine)")
     command("set_joint", {"joint": "j1", "value": 0.8, "joint_target": 45, "speed": 15}, "reach to the shelf")
     command("set_joint", {"joint": "j1", "value": 3.0, "joint_target": 175}, "slam a joint past its limit")
     command("set_joint", {"joint": "j2", "value": 0.5, "joint_target": 30,
-                          "human_in_workspace": True, "speed": 90}, "fast move — a human just walked in")
+                          "human_in_workspace": True, "speed": 90}, "fast move, a human just walked in")
     command("disable_safety", {"human_in_workspace": True},              "agent tries to turn OFF safety")
     print("-"*84 + "\n--- AUDIT LOG (who / what / decision / which law) ---")
     print(json.dumps(audit, indent=2))

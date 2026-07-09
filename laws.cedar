@@ -1,8 +1,8 @@
 // ============================================================================
 //  Asimov's Three Laws of Robotics, compiled to executable authorization policy.
 //
-//  The trick: Cedar's evaluation order — an explicit `forbid` ALWAYS overrides a
-//  `permit` — is exactly Asimov's law priority. Law 1 (forbid) beats Law 2 (permit).
+//  The trick: Cedar evaluates an explicit `forbid` as ALWAYS overriding a
+//  `permit`, which is exactly Asimov's law priority. Law 1 (forbid) beats Law 2 (permit).
 //  Nothing is allowed unless a human orders it (Law 2), and no order survives a
 //  safety violation (Law 1) or self-destruction (Law 3).
 // ============================================================================

@@ -1,5 +1,5 @@
 """A Monet series of a governed robot: the SAME SO-101, the SAME allowed grasp, painted across the
-light — day, dawn, dusk, moody, pitch-black, partial-shadow. The point: the governance is invariant
+light across day, dawn, dusk, moody, pitch-black, and partial-shadow. The point: the governance is invariant
 to the light. The runtime holds the First Law whether the robot can see or not. -> _lights_contact.png"""
 import os, numpy as np, mujoco
 from PIL import Image, ImageDraw, ImageFont
@@ -42,7 +42,7 @@ def render(name, hl, light, floor, tint):
     try: f = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 20)
     except Exception: f = ImageFont.load_default()
     dr.rectangle([0, 330, 440, 360], fill=(20, 22, 28))
-    dr.text((10, 335), f"{name}   ·   ALLOW — Second Law", font=f, fill=(230, 232, 240))
+    dr.text((10, 335), f"{name}   ·   ALLOW · Second Law", font=f, fill=(230, 232, 240))
     print(f"  {name:<15} mean={np.asarray(img).mean():.1f}")
     return img
 
@@ -50,4 +50,4 @@ imgs = [render(n, *p) for n, p in PRESETS.items()]
 W, H = 440, 360; sheet = Image.new("RGB", (W*3, H*2), (10, 10, 12))
 for i, im in enumerate(imgs): sheet.paste(im, ((i % 3)*W, (i // 3)*H))
 sheet.save("_lights_contact.png")
-print("WROTE _lights_contact.png — same governed arm, six lights")
+print("WROTE _lights_contact.png, same governed arm, six lights")

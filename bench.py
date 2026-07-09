@@ -1,4 +1,4 @@
-"""Safe Hands benchmark — you don't bench an authorization layer with a robot-success-rate; you bench
+"""Safe Hands benchmark. You don't bench an authorization layer with a robot-success-rate; you bench
 it like a security control. Four checks, run against the real Cedar engine in governance.py:
 
   1. DECISION SUITE   engine vs an INDEPENDENT oracle (the Three Laws re-derived in plain Python,
@@ -6,7 +6,7 @@ it like a security control. Four checks, run against the real Cedar engine in go
                       the number that matters is FALSE-ALLOW = 0 (never permit what the Laws forbid).
   2. POSITIVE CONTROLS the named attacks (agent lies about the human; disable_safety even though the
                       operator is scoped for it; the trolley override). 0 bypasses expected.
-  3. MUTATION TEST    sabotage a rule in laws.cedar and confirm the suite GOES RED — proof the bench
+  3. MUTATION TEST    sabotage a rule in laws.cedar and confirm the suite GOES RED, proof the bench
                       has teeth and isn't theater.
   4. BASELINE         vs the status quo of every robot-MCP demo: no auth = allow everything.
 
@@ -102,5 +102,5 @@ print(f"     Safe Hands         : {sh_through}/{len(dangerous)}")
 
 verdict = (c["false_allow"] == 0 and bypass == 0 and caught == len(MUTANTS) and sh_through == 0)
 print("\n" + "=" * 68)
-print("VERDICT:", "PASS — 0 false-allows, 0 bypasses, bench has teeth." if verdict else "FAIL — see above.")
+print("VERDICT:", "PASS. 0 false-allows, 0 bypasses, bench has teeth." if verdict else "FAIL. See above.")
 print("=" * 68)
