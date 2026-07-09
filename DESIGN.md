@@ -134,9 +134,16 @@ security control. `bench.py` runs four checks against the real engine:
 4. **Baseline** — vs the status quo (no auth = allow everything): 46/46 forbidden commands execute
    under the status quo; 0/46 under Safe Hands.
 
-**Honest limit:** the engine and the oracle were written from the same spec, so #1 alone is
-partly circular. The *mutation test* is what earns the credibility, and the strongest next step is
-an **independent** red-team writing the oracle from scratch. That's an invitation, not a footnote.
+**5. Independent red-team.** The obvious hole in #1 is that the engine and the author's oracle share
+a spec — so a separate model ([codex](codex_redteam_fuzz.py)) wrote its *own* oracle from the prose
+alone, blind to `bench.py`, and fuzzed the engine over **11,728 cases: 0 disagreements** (report:
+[`codex_redteam_report.md`](codex_redteam_report.md)). It exercised cases the author's suite didn't
+— action case-sensitivity (`"Disable_Safety"`), trailing whitespace (`"set_joint "`), and int64
+extremes (±2⁶³) — and the engine held on all of them.
+
+**Honest limit that remains:** two implementations agreeing is strong evidence of *spec-faithfulness*,
+not proof the *spec itself* is what you want — and none of this benches perception, latency, or
+philosophical safety (see §3). The invitation still stands: clone it and try to break it.
 
 ## 7. Alternatives considered
 

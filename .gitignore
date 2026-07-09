@@ -4,4 +4,3 @@ __pycache__/
 # scratch / internal (not part of the public artifact)
 _*
 LAUNCH.md
-codex_redteam_report.md

@@ -71,11 +71,16 @@ control. `bench.py` runs four checks against the real Cedar engine:
                     execute anyway.  Safe Hands: 0/46.
 ```
 
+**Independently red-teamed.** Because the engine and that oracle share a spec, a *different model*
+(codex) wrote its own oracle from the prose alone, blind to `bench.py`, and fuzzed the engine over
+**11,728 cases — 0 disagreements** (including case-sensitivity, trailing-whitespace, and int64-extreme
+inputs the suite above never tested). See [`codex_redteam_report.md`](codex_redteam_report.md) and
+[`codex_redteam_fuzz.py`](codex_redteam_fuzz.py).
+
 It deliberately does **not** bench perception (*is* there really a human? — the sensor's job, which
 is why "even in the dark" matters), Asimov's Laws being philosophically safe (they're not), or
-deny-beats-motor latency. It measures **policy correctness**. And the honest limit: the engine and
-oracle share a spec, so the mutation test — not the 64/64 — is what earns the credibility. Next:
-an independent red-team writes the oracle.
+deny-beats-motor latency. It measures **policy correctness** — and now you can clone it and try to
+break it.
 
 ## Run it
 
